@@ -30,22 +30,6 @@ pub enum PowerUnit {
     MilliWatt,
 }
 
-impl Default for CurrentSweepConfig {
-    fn default() -> Self {
-        Self {
-            module: 0,
-            port: 2,   // Default to port 2 as requested
-            start_ma: 10.0,
-            stop_ma: 100.0,
-            step_ma: 5.0,
-            stabilization_delay_ms: 50,
-            wavelength_nm: 980,
-            averaging_time_ms: 100.0,
-            power_unit: PowerUnit::DBm,
-        }
-    }
-}
-
 /// Run a current sweep with custom configuration
 pub fn run_current_sweep(
     cld: &mut CLD1015,
@@ -55,19 +39,6 @@ pub fn run_current_sweep(
     info!("Starting current sweep with configuration: {:?}", config);
     
     // Connect to devices and run experiment
-    _run_current_sweep_internal(cld, mpm, config)
-}
-
-/// Run a basic current sweep with default parameters
-pub fn run_basic_current_sweep(
-    cld: &mut CLD1015,
-    mpm: &mut MPM210H,
-) -> Result<PathBuf, String> {
-    // Use default configuration
-    let config = CurrentSweepConfig::default();
-    
-    // Run with default parameters
-    info!("Starting basic current sweep with default parameters");
     _run_current_sweep_internal(cld, mpm, config)
 }
 
@@ -84,6 +55,9 @@ fn _run_current_sweep_internal(
     let stop_ma = config.stop_ma;
     let step_ma = config.step_ma;
     let stabilization_delay_ms = config.stabilization_delay_ms;
+    let wavelength_nm = config.wavelength_nm;
+    let averaging_time_ms = config.averaging_time_ms;
+    let power_unit = config.power_unit;
 
     // Connect to devices
     info!("Connecting to devices");
@@ -177,12 +151,12 @@ fn _run_current_sweep_internal(
     }
     
     // Set average time
-    if let Err(e) = mpm.set_average_time(config.averaging_time_ms) {
+    if let Err(e) = mpm.set_average_time(averaging_time_ms) {
         return Err(format!("Failed to set MPM210H averaging time: {}", e));
     }
     
     // Set power unit
-    let unit_value = match config.power_unit {
+    let unit_value = match power_unit {
         PowerUnit::DBm => 0,
         PowerUnit::MilliWatt => 1,
     };
@@ -191,7 +165,7 @@ fn _run_current_sweep_internal(
     }
 
     // Ensure mpm210h is at the correct wavelength for the laser
-    if let Err(e) = mpm.set_wavelength(config.wavelength_nm) {
+    if let Err(e) = mpm.set_wavelength(wavelength_nm) {
         return Err(format!("Failed to set MPM210H wavelength: {}", e));
     }
 
